@@ -20,6 +20,7 @@ public class EntryPoint extends Application {
 		FXMLController controller = loader.getController();
 		Model model = new Model();
 		controller.setModel(model);
+		controller.setComboMesi();
 		Scene scene = new Scene(root);
 		scene.getStylesheets().add(getClass().getResource("/styles/Styles.css").toExternalForm());
 		stage.setScene(scene);

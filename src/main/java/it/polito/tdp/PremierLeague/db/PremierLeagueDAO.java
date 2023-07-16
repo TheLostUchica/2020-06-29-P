@@ -5,8 +5,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import it.polito.tdp.PremierLeague.model.Action;
+import it.polito.tdp.PremierLeague.model.Arco;
 import it.polito.tdp.PremierLeague.model.Match;
 import it.polito.tdp.PremierLeague.model.Player;
 
@@ -84,6 +87,69 @@ public class PremierLeagueDAO {
 			return result;
 			
 		} catch (SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	HashMap<Integer, Match> idMap;
+	
+	public List<Match> getVertex(int mese){
+		
+		String sql = "SELECT MatchId, TeamHomeID AS t1, TeamAwayID AS t2 "
+				+ "FROM matches "
+				+ "WHERE MONTH(DATE)=?";
+		
+		this.idMap = new HashMap<>();
+		
+		try {
+			Connection conn = DBConnect.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, mese);
+			ResultSet res = st.executeQuery();
+			
+			List<Match> result = new LinkedList<>();
+			
+			while(res.next()) {
+				Match m = new Match(res.getInt("MAtchID"),res.getInt("t1"), res.getInt("t2"));
+				result.add(m);
+				this.idMap.put(m.getMatchID(), m);
+			}
+			
+			conn.close();
+			return result;
+		}catch (SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	public List<Arco> getArchi(int mese, int minuti){
+		
+		String sql = "SELECT m1.MatchID AS m1, m2.MatchID AS m2, COUNT(*) AS peso "
+				+ "FROM actions m1, actions m2 "
+				+ "WHERE m1.MatchID<m2.MatchID AND m1.MatchID IN (SELECT MatchID FROM matches WHERE MONTH(DATE)=?) AND m2.MatchID IN (SELECT MatchID FROM matches WHERE MONTH(DATE)=?) AND "
+				+ "m1.PlayerID = m2.PlayerID AND m1.TimePlayed>=? AND m2.TimePlayed>=? "
+				+ "GROUP BY m1.MatchID, m2.MatchID";
+		
+		try {
+			Connection conn = DBConnect.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, mese);
+			st.setInt(2, mese);
+			st.setInt(3, minuti);
+			st.setInt(4, minuti);
+			ResultSet res = st.executeQuery();
+			
+			List<Arco> result = new LinkedList<>();
+			
+			while(res.next()) {
+				result.add(new Arco(this.idMap.get(res.getInt("m1")), this.idMap.get(res.getInt("m2")), res.getInt("peso")));
+			}
+			
+			conn.close();
+			return result;
+		}catch (SQLException e) {
 			e.printStackTrace();
 			return null;
 		}
